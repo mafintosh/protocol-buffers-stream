@@ -1,0 +1,12 @@
+message Test {
+  required bytes foo = 1;
+}
+
+message Another {
+  optional string test = 1;
+}
+
+message AnotherOne {
+  required uint32 foo = 2;
+  optional string bar = 1;
+}
