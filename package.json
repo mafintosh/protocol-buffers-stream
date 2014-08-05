@@ -1,0 +1,38 @@
+{
+  "name": "protocol-buffers-stream",
+  "version": "0.0.0",
+  "description": "Streaming protocol buffers for Node.js",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "debug": "^1.0.4",
+    "protocol-buffers": "^2.3.0",
+    "varint": "^3.0.0"
+  },
+  "devDependencies": {
+    "tape": "^2.14.0",
+    "through2": "^0.5.1"
+  },
+  "scripts": {
+    "test": "tape test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mafintosh/protocol-buffers-stream"
+  },
+  "keywords": [
+    "protobuf",
+    "protocol",
+    "buffers",
+    "stream",
+    "streaming"
+  ],
+  "author": "Mathias Buus",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mafintosh/protocol-buffers-stream/issues"
+  },
+  "homepage": "https://github.com/mafintosh/protocol-buffers-stream"
+}

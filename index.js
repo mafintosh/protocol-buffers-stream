@@ -1,0 +1,168 @@
+var protobuf = require('protocol-buffers')
+var varint = require('varint')
+var stream = require('stream')
+var util = require('util')
+var debug = require('debug')('protocol-buffers-stream')
+var fs = require('fs')
+var path = require('path')
+
+var Handshake = protobuf(fs.readFileSync(path.join(__dirname, 'handshake.proto'))).Handshake
+
+var camelize = function(key) {
+  return key[0].toLowerCase()+key.slice(1)
+}
+
+var compile = function(schema) {
+  var messages = protobuf(schema)
+  var encodings = []
+
+  var handshake = {
+    messages: Object.keys(messages)
+  }
+
+  var Messages = function() {
+    if (!(this instanceof Messages)) return new Messages()
+    stream.Duplex.call(this)
+
+    this._missing = 0
+    this._buffer = null
+    this._header = new Buffer(50)
+    this._ptr = 0
+    this._events = []
+    this._decodings = []
+    this._encodings = encodings
+    this._push(0, handshake)
+  }
+
+  util.inherits(Messages, stream.Duplex)
+
+  Object.keys(messages).forEach(function(key, i) {
+    encodings.push(messages[key])
+    Messages.prototype[camelize(key)] = function(obj) {
+      this._push(i+1, obj)
+    }
+  })
+
+  Messages.prototype._push = function(id, obj) {
+    var enc = id === 0 ? Handshake : this._encodings[id-1]
+    var len = enc.encodingLength(obj)
+
+    debug('writing %s (id: %d, length: %d)', enc.name, id, len)
+
+    len += varint.encodingLength(id)
+
+    var offset = 0
+    var buf = new Buffer(len+varint.encodingLength(len))
+
+    varint.encode(len, buf, offset)
+    offset += varint.encode.bytes
+
+    varint.encode(id, buf, offset)
+    offset += varint.encode.bytes
+
+    enc.encode(obj, buf, offset)
+    this.push(buf)
+  }
+
+  Messages.prototype.finalize = function() {
+    this.push(null)
+  }
+
+  Messages.prototype._read = function() {
+    // do nothing
+  }
+
+  Messages.prototype._write = function(data, enc, cb) {
+    while (data && data.length) {
+      if (this._missing) data = this._onmessage(data)
+      else data = this._onheader(data)
+    }
+    cb()
+  }
+
+  Messages.prototype._emit = function() {
+    this._missing = 0
+    this._ptr = 0
+
+    var id = varint.decode(this._buffer)
+    var enc = id === 0 ? Handshake : this._decodings[id-1]
+    var evt = id > 0 && this._events[id-1]
+
+    if (!enc) {
+      debug('unknown (id: %d)', id)
+      return this.emit('unknown', id)
+    }
+
+    try {
+      var obj = enc.decode(this._buffer, varint.decode.bytes)
+    } catch (err) {
+      debug('invalid %s (id: %d, length: %d)', enc.name, id, this._buffer.length)
+      return this.emit('invalid', evt, this._buffer)
+    }
+
+    debug('received %s (id: %d, length: %d)', enc.name, id, this._buffer.length)
+    if (enc !== Handshake) return this.emit(evt, obj)
+
+    for (var i = 0; i < obj.messages.length; i++) {
+      this._decodings[i] = messages[obj.messages[i]] || null
+      this._events[i] = this._decodings[i] && camelize(this._decodings[i].name)
+    }
+
+    return false
+  }
+
+  Messages.prototype._onmessage = function(data) {
+    if (!this._buffer) {
+      if (data.length === this._missing) {
+        this._buffer = data
+        this._emit()
+        return null
+      }
+
+      if (data.length > this._missing) {
+        this._buffer = data.slice(0, this._missing)
+        var overflow = data.slice(this._missing)
+        this._emit()
+        return overflow
+      }
+
+      this._buffer = new Buffer(this._missing)
+    }
+
+    if (data.length === this._missing) {
+      data.copy(this._buffer, this._ptr)
+      this._emit()
+      return null
+    }
+
+    if (data.length > this._missing) {
+      data.slice(0, this._missing).copy(this._buffer, this._ptr)
+      var overflow = data.slice(this._missing)
+      this._emit()
+      return overflow
+    }
+
+    data.copy(this._buffer, this._ptr)
+    this._ptr += data.length
+    this._missing -= data.length
+
+    return null
+  }
+
+  Messages.prototype._onheader = function(data) {
+    for (var i = 0; i < data.length; i++) {
+      this._header[this._ptr++] = data[i]
+      if (data[i] & 0x80) continue
+      this._ptr = 0
+      this._missing = varint.decode(this._header)
+      this._buffer = null
+      debug('expecting message (length: %d)', this._missing)
+      return data.slice(i+1)
+    }
+    return null
+  }
+
+  return Messages
+}
+
+module.exports = compile
