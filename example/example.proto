@@ -1,0 +1,7 @@
+message Request {
+  required string hello = 1;
+}
+
+message Response {
+  required Request echo = 1;
+}
