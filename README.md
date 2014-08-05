@@ -28,6 +28,7 @@ var createStream = protobufs(schema)
 var stream = createStream()
 
 // send a test message
+// if your schema message was named example this method would be called example
 stream.test({
   hello: 'world'
 })
@@ -51,8 +52,8 @@ Each buffer is sent using the following encoding
 ----------------------------------------------
 ```
 
-The message id is the message position in the schema file (first message is 0, second is 1, etc).
-If you add new messages make sure to add them add the bottom of the schema file.
+The first message sent is a handshake message that contains the message
+ids of the following messages
 
 ## License
 
