@@ -16,8 +16,13 @@ var compile = function(schema) {
   var messages = protobuf(schema)
   var encodings = []
 
+  var toMessage = function(key) {
+    var m = messages[key]
+    return m && typeof m.encode === 'function' && typeof m.decode === 'function' && m.name && m
+  }
+
   var handshake = {
-    messages: Object.keys(messages)
+    messages: Object.keys(messages).filter(toMessage)
   }
 
   var Messages = function() {
@@ -37,7 +42,7 @@ var compile = function(schema) {
 
   util.inherits(Messages, stream.Duplex)
 
-  Object.keys(messages).forEach(function(key, i) {
+  handshake.messages.forEach(function(key, i) {
     encodings.push(messages[key])
     Messages.prototype[camelize(key)] = function(obj) {
       this._push(i+1, obj)
@@ -114,7 +119,7 @@ var compile = function(schema) {
     if (enc !== Handshake) return this.emit(evt, obj)
 
     for (var i = 0; i < obj.messages.length; i++) {
-      this._decodings[i] = messages[obj.messages[i]] || null
+      this._decodings[i] = toMessage(obj.messages[i]) || null
       this._events[i] = this._decodings[i] && camelize(this._decodings[i].name)
     }
 
