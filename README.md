@@ -6,6 +6,8 @@ Streaming protocol buffers for Node.js
 npm install protocol-buffers-stream
 ```
 
+[![build status](http://img.shields.io/travis/mafintosh/protocol-buffers-stream.svg?style=flat)](http://travis-ci.org/mafintosh/protocol-buffers-stream)
+
 ## Usage
 
 Assuming you have the following schema
