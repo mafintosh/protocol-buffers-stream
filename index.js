@@ -24,6 +24,7 @@ var compile = function(schema) {
     if (!(this instanceof Messages)) return new Messages()
     stream.Duplex.call(this)
 
+    this.destroyed = false
     this._missing = 0
     this._buffer = null
     this._header = new Buffer(50)
@@ -44,6 +45,8 @@ var compile = function(schema) {
   })
 
   Messages.prototype._push = function(id, obj) {
+    if (this.destroyed) return
+
     var enc = id === 0 ? Handshake : this._encodings[id-1]
     var len = enc.encodingLength(obj)
 
@@ -64,6 +67,13 @@ var compile = function(schema) {
     this.push(buf)
   }
 
+  Messages.prototype.destroy = function(err) {
+    if (this.destroyed) return
+    this.destroyed = true
+    if (err) this.emit('error', err)
+    this.emit('close')
+  }
+
   Messages.prototype.finalize = function() {
     this.push(null)
   }
@@ -73,7 +83,7 @@ var compile = function(schema) {
   }
 
   Messages.prototype._write = function(data, enc, cb) {
-    while (data && data.length) {
+    while (data && data.length && !this.destroyed) {
       if (this._missing) data = this._onmessage(data)
       else data = this._onheader(data)
     }
