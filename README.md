@@ -57,6 +57,9 @@ Each buffer is sent using the following encoding
 The first message sent is a handshake message that contains the message
 ids of the following messages
 
+If you know that your schema won't change you can pass `{handshake:false}` to `createStream`
+to disable handshaking
+
 ## License
 
 MIT

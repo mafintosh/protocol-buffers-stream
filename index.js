@@ -25,11 +25,13 @@ var compile = function(schema) {
     messages: Object.keys(messages).filter(toMessage)
   }
 
-  var Messages = function() {
-    if (!(this instanceof Messages)) return new Messages()
+  var Messages = function(opts) {
+    if (!(this instanceof Messages)) return new Messages(opts)
+    if (!opts) opts = {}
     stream.Duplex.call(this)
 
     this.destroyed = false
+    this._handshake = opts.handshake !== false
     this._missing = 0
     this._buffer = null
     this._header = new Buffer(50)
@@ -37,7 +39,9 @@ var compile = function(schema) {
     this._events = []
     this._decodings = []
     this._encodings = encodings
-    this._push(0, handshake)
+
+    if (this._handshake) this._push(0, handshake)
+    else this._onhandshake(handshake)
   }
 
   util.inherits(Messages, stream.Duplex)
@@ -118,12 +122,16 @@ var compile = function(schema) {
     debug('received %s (id: %d, length: %d)', enc.name, id, this._buffer.length)
     if (enc !== Handshake) return this.emit(evt, obj)
 
+    this._onhandshake(obj)
+
+    return false
+  }
+
+  Messages.prototype._onhandshake = function(obj) {
     for (var i = 0; i < obj.messages.length; i++) {
       this._decodings[i] = toMessage(obj.messages[i]) || null
       this._events[i] = this._decodings[i] && camelize(this._decodings[i].name)
     }
-
-    return false
   }
 
   Messages.prototype._onmessage = function(data) {
