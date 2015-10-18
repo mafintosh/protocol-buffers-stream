@@ -12,11 +12,11 @@ client.request({
   hello: 'world'
 })
 
-client.on('response', function(response) {
+client.on('response', function (response) {
   console.log('server says:', response)
 })
 
-server.on('request', function(request) {
+server.on('request', function (request) {
   console.log('client says:', request)
   server.response({
     echo: request

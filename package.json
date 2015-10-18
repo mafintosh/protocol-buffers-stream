@@ -12,11 +12,12 @@
     "varint": "^3.0.0"
   },
   "devDependencies": {
+    "standard": "^5.3.1",
     "tape": "^2.14.0",
     "through2": "^0.5.1"
   },
   "scripts": {
-    "test": "tape test"
+    "test": "standard && tape test"
   },
   "repository": {
     "type": "git",
