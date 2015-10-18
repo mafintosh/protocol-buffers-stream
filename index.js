@@ -1,6 +1,6 @@
 var protobuf = require('protocol-buffers')
 var varint = require('varint')
-var stream = require('stream')
+var stream = require('readable-stream')
 var util = require('util')
 var debug = require('debug')('protocol-buffers-stream')
 

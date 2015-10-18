@@ -9,6 +9,7 @@
   "dependencies": {
     "debug": "^1.0.4",
     "protocol-buffers": "^2.3.0",
+    "readable-stream": "^2.0.2",
     "varint": "^3.0.0"
   },
   "devDependencies": {
